@@ -1,5 +1,4 @@
 # UPI  Mesh 
-# UPI Mesh 
 
 A Spring Boot backend that demonstrates **offline UPI payments routed through a Bluetooth-style mesh network**. You're in a basement with zero connectivity. You send your friend ₹500. Your phone encrypts the payment, broadcasts it to nearby phones, and the packet hops device-to-device until *some* phone walks outside, gets 4G, and silently uploads it to this backend. The backend decrypts, deduplicates, and settles.
 
@@ -355,7 +354,6 @@ The three included tests:
 ## What's NOT real (and what would change for production)
 
  To make it production-grade we can swap these things:
-To make it production-grade we can swap these things:
 
 | What's in the demo | What it would be in production |
 |---|---|
@@ -389,4 +387,3 @@ I want this README to be useful to you when someone reviews the project, so let'
 ## License
 
  no license. it is for learning.
-learning project , no license. Use it however you want for learning.
