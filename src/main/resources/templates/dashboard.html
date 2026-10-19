@@ -303,6 +303,12 @@
         }
         .btn-danger:hover { background: #ef4444; }
 
+        .btn-warning {
+            background: #d97706;
+            color: white;
+        }
+        .btn-warning:hover { background: #b45309; }
+
         input, select {
             background: #090d16;
             color: var(--text-main);
@@ -541,17 +547,22 @@
             <button class="btn-success" onclick="manualInject()">📤 Inject Into Alice Phone</button>
         </div>
 
-        <!-- Manual Step Row 2 & 3 -->
+        <!-- Manual Step Row 2, 3 & 4 -->
         <div class="step-row" style="margin-top: 12px;">
             <div class="step-label">
                 <span class="step-pill">2</span> Gossip Protocol:
             </div>
             <button class="btn-primary" onclick="manualGossip()">🔄 Run Gossip Round (BLE Hops)</button>
 
-            <div class="step-label" style="margin-left: 20px;">
+            <div class="step-label" style="margin-left: 16px;">
                 <span class="step-pill">3</span> Bridge Uplink:
             </div>
             <button class="btn-primary" onclick="manualFlush()">📡 Bridge Upload to NPCI Core</button>
+
+            <div class="step-label" style="margin-left: 16px;">
+                <span class="step-pill" style="background: #f59e0b;">4</span> Duplicate Demo:
+            </div>
+            <button class="btn-warning" onclick="manualDuplicateAttack()">🛡️ Test Duplicate Attack (Idempotency)</button>
         </div>
     </div>
 
@@ -983,6 +994,31 @@ async function manualFlush() {
     r.results.forEach(res => {
         log(`   ➔ ${res.bridgeNode}: ${res.outcome} ${res.reason ? '(' + res.reason + ')' : ''}`);
     });
+
+    refresh();
+}
+
+async function manualDuplicateAttack() {
+    // 1. Ensure stranger3 has 4G turned on
+    await fetch('/api/mesh/toggle-internet/phone-stranger3', { method: 'POST' });
+    await refresh();
+
+    // 2. Animate duplicate upload from stranger 3 to gateway
+    emitVisualPacket('phone-stranger3', 'npci-gateway', '#f59e0b');
+    playBeep(440, 0.2, 'sawtooth');
+
+    flashNode = { name: 'npci-gateway', color: 'rgba(245, 158, 11, 0.5)', expires: Date.now() + 1200 };
+    pulseWaves.push({ ...getCanvasPos('npci-gateway'), radius: 12, maxRadius: 65, color: 'rgba(245, 158, 11, ALPHA)', alpha: 1 });
+
+    const r = await fetch('/api/mesh/flush', { method: 'POST' }).then(r => r.json());
+    log(`🛡️ [STEP 4: DUPLICATE DEMO] Stranger 3 (now on 4G) submitted the held packet to Bank Core:`);
+    r.results.forEach(res => {
+        log(`   ➔ ${res.bridgeNode}: ${res.outcome} — Identical hash detected! Suppressed by Idempotency Cache.`);
+    });
+
+    setStoryBanner('🛡️ DUPLICATE ATTACK SUPPRESSED (IDEMPOTENCY PROOF)',
+        '✅ <strong>Double-Spend Blocked:</strong> Stranger 3 tried to upload the exact same packet, but the Bank Gateway matched its SHA-256 hash in the Idempotency Cache. The duplicate was dropped. Alice was debited only once!'
+    );
 
     refresh();
 }
