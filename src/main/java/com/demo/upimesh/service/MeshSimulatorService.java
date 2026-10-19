@@ -122,8 +122,21 @@ public class MeshSimulatorService {
         return out;
     }
 
+    public boolean toggleDeviceInternet(String deviceId) {
+        VirtualDevice dev = devices.get(deviceId);
+        if (dev != null) {
+            return dev.toggleInternet();
+        }
+        return false;
+    }
+
     public void resetMesh() {
         devices.values().forEach(VirtualDevice::clear);
+        devices.get("phone-alice").setHasInternet(false);
+        devices.get("phone-stranger1").setHasInternet(false);
+        devices.get("phone-stranger2").setHasInternet(false);
+        devices.get("phone-stranger3").setHasInternet(false);
+        devices.get("phone-bridge").setHasInternet(true);
     }
 
     public record GossipResult(int transfers, Map<String, Integer> deviceCounts) {}

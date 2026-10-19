@@ -138,11 +138,19 @@ public class ApiController {
         );
     }
 
+    @PostMapping("/mesh/toggle-internet/{deviceId}")
+    public Map<String, Object> toggleInternet(@PathVariable String deviceId) {
+        boolean state = mesh.toggleDeviceInternet(deviceId);
+        return Map.of("deviceId", deviceId, "hasInternet", state);
+    }
+
     @PostMapping("/mesh/reset")
     public Map<String, Object> meshReset() {
         mesh.resetMesh();
         idempotency.clear();
-        return Map.of("status", "mesh and idempotency cache cleared");
+        txRepo.deleteAll();
+        demo.resetAccounts();
+        return Map.of("status", "mesh, transactions, balances, and idempotency cache cleared");
     }
 
     // -------------------------------------------------------------- bridge

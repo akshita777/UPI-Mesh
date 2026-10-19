@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class VirtualDevice {
 
     private final String deviceId;
-    private final boolean hasInternet;
+    private volatile boolean hasInternet;
     private final Map<String, MeshPacket> heldPackets = new ConcurrentHashMap<>();
 
     public VirtualDevice(String deviceId, boolean hasInternet) {
@@ -25,6 +25,11 @@ public class VirtualDevice {
 
     public String getDeviceId() { return deviceId; }
     public boolean hasInternet() { return hasInternet; }
+    public void setHasInternet(boolean hasInternet) { this.hasInternet = hasInternet; }
+    public boolean toggleInternet() {
+        this.hasInternet = !this.hasInternet;
+        return this.hasInternet;
+    }
 
     public void hold(MeshPacket packet) {
         heldPackets.putIfAbsent(packet.getPacketId(), packet);

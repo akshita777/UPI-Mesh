@@ -2,201 +2,937 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>UPI Offline Mesh — Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPI Offline Mesh — Interactive Demo & Visualizer</title>
     <style>
-        * { box-sizing: border-box; }
+        :root {
+            --bg-dark: #080b11;
+            --card-bg: #111726;
+            --card-border: #1e293b;
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.25);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.25);
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #8b5cf6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            margin: 0; padding: 24px; background: #0d1117; color: #e6edf3;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            padding: 20px;
+            min-height: 100vh;
         }
-        h1 { margin-top: 0; color: #f0f6fc; }
-        h2 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 4px; margin-top: 32px; }
-        .container { max-width: 1200px; margin: 0 auto; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 20px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .badge-chip {
+            background: rgba(56, 189, 248, 0.12);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 9999px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .crypto-specs {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            background: #0f172a;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+        }
+
+        /* Banner for Demo Story */
+        #storyBanner {
+            display: none;
+            background: linear-gradient(90deg, rgba(30, 41, 59, 0.95), rgba(17, 24, 39, 0.95));
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+            padding: 14px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            animation: fadeIn 0.3s ease;
+        }
+
+        #storyBanner .step-tag {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        #storyBanner .story-desc {
+            font-size: 15px;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
+        /* Layout Grids */
         .grid { display: grid; gap: 16px; }
+        .grid-3 { grid-template-columns: 2fr 1fr 1fr; }
         .grid-2 { grid-template-columns: 1fr 1fr; }
-        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+        @media (max-width: 1024px) {
+            .grid-3, .grid-2 { grid-template-columns: 1fr; }
+        }
+
         .card {
-            background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 18px;
+            position: relative;
         }
-        .device {
-            border: 1px solid #30363d; border-radius: 6px; padding: 12px; margin-bottom: 8px;
-            background: #0d1117;
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 8px;
         }
-        .device.bridge { border-color: #2ea043; background: #052e16; }
-        .device.offline { opacity: 0.85; }
-        .badge {
-            display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px;
-            font-weight: 600; margin-left: 8px;
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .badge-online { background: #2ea043; color: white; }
-        .badge-offline { background: #6e7681; color: white; }
-        .packet-id {
-            font-family: 'Consolas', 'Monaco', monospace; font-size: 11px;
-            background: #21262d; padding: 2px 6px; border-radius: 3px; margin: 2px;
+
+        /* Visual Topology Canvas */
+        .canvas-container {
+            position: relative;
+            background: radial-gradient(circle at center, #131b2e 0%, #090d16 100%);
+            border-radius: 10px;
+            border: 1px solid #1e293b;
+            overflow: hidden;
+            width: 100%;
+            height: 380px;
+        }
+
+        #meshCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .canvas-overlay-legend {
+            position: absolute;
+            top: 10px;
+            left: 12px;
+            font-size: 11px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(4px);
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            z-index: 5;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Controls Section */
+        .controls-panel {
+            background: #0f172a;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+
+        .story-btn-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed var(--card-border);
+        }
+
+        .btn-story {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-story:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        }
+
+        .btn-story:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .step-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .step-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            min-width: 140px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .step-pill {
+            background: var(--primary);
+            color: #04111d;
+            font-weight: 800;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        button {
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 14px;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover { background: #3b82f6; }
+
+        .btn-success {
+            background: #16a34a;
+            color: white;
+        }
+        .btn-success:hover { background: #22c55e; }
+
+        .btn-secondary {
+            background: #334155;
+            color: #e2e8f0;
+        }
+        .btn-secondary:hover { background: #475569; }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover { background: #ef4444; }
+
+        input, select {
+            background: #090d16;
+            color: var(--text-main);
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Device cards */
+        .device-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        .device-item {
+            background: #090d16;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.2s;
+        }
+
+        .device-item.online {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .device-item.holding {
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .device-info-col {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .device-title {
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-pill {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+        }
+
+        .status-pill.online { background: #166534; color: #86efac; }
+        .status-pill.offline { background: #374151; color: #9ca3af; }
+
+        .packet-badge {
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            background: #1e293b;
+            color: #38bdf8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #334155;
+            display: inline-block;
+            margin-right: 4px;
+        }
+
+        .btn-toggle-net {
+            font-size: 11px;
+            padding: 4px 8px;
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            border-radius: 4px;
+        }
+        .btn-toggle-net:hover {
+            color: white;
+            background: #334155;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            text-align: left;
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        td {
+            padding: 9px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            color: #e2e8f0;
+        }
+
+        .amount-cell {
+            font-family: 'Consolas', monospace;
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
             display: inline-block;
         }
-        button {
-            background: #238636; color: white; border: none; padding: 8px 16px;
-            border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;
-            margin: 4px;
+
+        .status-SETTLED {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
         }
-        button:hover { background: #2ea043; }
-        button.danger { background: #da3633; }
-        button.danger:hover { background: #f85149; }
-        button.secondary { background: #1f6feb; }
-        button.secondary:hover { background: #388bfd; }
-        input, select {
-            background: #0d1117; color: #e6edf3; border: 1px solid #30363d;
-            border-radius: 4px; padding: 6px 10px; font-size: 14px; margin: 4px;
+
+        .status-DUPLICATE_DROPPED {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
         }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #30363d; }
-        th { color: #8b949e; font-weight: 600; font-size: 12px; text-transform: uppercase; }
-        .status-SETTLED { color: #56d364; font-weight: 600; }
-        .status-REJECTED { color: #f85149; font-weight: 600; }
-        .status-DUPLICATE_DROPPED { color: #d29922; font-weight: 600; }
-        .status-INVALID { color: #f85149; font-weight: 600; }
+
+        .status-REJECTED, .status-INVALID {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* Activity Log */
         #log {
-            background: #010409; color: #7ee787; padding: 12px; border-radius: 6px;
-            font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;
-            max-height: 220px; overflow-y: auto; white-space: pre-wrap;
-            border: 1px solid #30363d;
+            background: #070a0f;
+            color: #7ee787;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+            max-height: 180px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.5;
         }
-        .controls { background: #161b22; padding: 16px; border-radius: 8px;
-                    border: 1px solid #30363d; margin-bottom: 16px; }
-        .step-num {
-            display: inline-block; background: #58a6ff; color: white;
-            border-radius: 50%; width: 24px; height: 24px; text-align: center;
-            line-height: 24px; font-weight: 600; margin-right: 8px;
+
+        /* Footer info */
+        footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--card-border);
+            padding-top: 16px;
         }
-        .balance { font-family: 'Consolas', monospace; color: #56d364; font-weight: 600; }
-        .small { font-size: 12px; color: #8b949e; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>📡 UPI Offline Mesh — Live Demo</h1>
-    <p class="small">
-        Send money in a basement with zero internet. Encrypted packets gossip from phone to phone
-        until one with 4G reaches the backend.
-    </p>
 
-    <div class="controls">
-        <h3 style="margin-top:0">🎬 Demo Flow</h3>
+    <!-- Header -->
+    <header>
+        <div class="header-title">
+            <h1>📡 UPI Offline Mesh Network</h1>
+            <span class="badge-chip">● Peer-to-Peer Store & Forward</span>
+        </div>
+        <div class="crypto-specs">
+            <span>🔐 Cryptography: <strong>RSA-2048 OAEP</strong> + <strong>AES-256-GCM</strong> (Hybrid Envelope)</span>
+        </div>
+    </header>
 
-        <div>
-            <span class="step-num">1</span><strong>Compose payment</strong> (simulates sender phone)
-            <br>
+    <!-- Guided Story Banner -->
+    <div id="storyBanner">
+        <div class="step-tag" id="storyStepTag">STEP 1 OF 5 — OFFLINE INTENT</div>
+        <div class="story-desc" id="storyText">Alice generates an offline payment in a zero-connectivity basement...</div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="controls-panel">
+        <div class="story-btn-row">
+            <button class="btn-story" id="btnAutoDemo" onclick="runAutomatedStory()">
+                🎬 Run Automated Story Walkthrough
+            </button>
+            <span style="font-size: 12px; color: var(--text-muted);">
+                Runs the complete end-to-end scenario: Offline Payment ➔ Gossip Hops ➔ 4G Bridge Uplink ➔ Settlement ➔ Duplicate Drop.
+            </span>
+            <div style="margin-left: auto;">
+                <button class="btn-danger" onclick="resetAll()">🗑 Reset All</button>
+            </div>
+        </div>
+
+        <!-- Manual Step Row 1 -->
+        <div class="step-row">
+            <div class="step-label">
+                <span class="step-pill">1</span> Compose Payment:
+            </div>
             <select id="senderVpa">
-                <option>alice@demo</option>
-                <option>bob@demo</option>
-                <option>carol@demo</option>
+                <option value="alice@demo">Alice (alice@demo)</option>
+                <option value="bob@demo">Bob (bob@demo)</option>
+                <option value="carol@demo">Carol (carol@demo)</option>
             </select>
-            →
+            <span style="color: var(--text-muted)">➔</span>
             <select id="receiverVpa">
-                <option>bob@demo</option>
-                <option>carol@demo</option>
-                <option>alice@demo</option>
-                <option>dave@demo</option>
+                <option value="bob@demo">Bob (bob@demo)</option>
+                <option value="carol@demo">Carol (carol@demo)</option>
+                <option value="alice@demo">Alice (alice@demo)</option>
+                <option value="dave@demo">Dave (dave@demo)</option>
             </select>
-            ₹<input type="number" id="amount" value="500" style="width: 100px">
-            PIN <input type="text" id="pin" value="1234" style="width: 80px" maxlength="4">
-            <button onclick="sendPacket()">📤 Inject into Mesh</button>
+            <label style="font-size: 13px; color: var(--text-muted);">₹</label>
+            <input type="number" id="amount" value="500" style="width: 90px">
+            <label style="font-size: 13px; color: var(--text-muted);">PIN</label>
+            <input type="password" id="pin" value="1234" style="width: 70px" maxlength="4">
+            <button class="btn-success" onclick="manualInject()">📤 Inject Into Alice Phone</button>
         </div>
 
-        <div style="margin-top: 16px">
-            <span class="step-num">2</span><strong>Gossip</strong> — packets hop device-to-device
-            <button class="secondary" onclick="gossip()">🔄 Run Gossip Round</button>
-        </div>
+        <!-- Manual Step Row 2 & 3 -->
+        <div class="step-row" style="margin-top: 12px;">
+            <div class="step-label">
+                <span class="step-pill">2</span> Gossip Protocol:
+            </div>
+            <button class="btn-primary" onclick="manualGossip()">🔄 Run Gossip Round (BLE Hops)</button>
 
-        <div style="margin-top: 16px">
-            <span class="step-num">3</span><strong>Bridge node walks outside, hits 4G</strong>
-            <button class="secondary" onclick="flushBridges()">📡 Bridges Upload to Backend</button>
-            <span class="small">(parallel — exercises idempotency)</span>
-        </div>
-
-        <div style="margin-top: 16px">
-            <button class="danger" onclick="resetMesh()">🗑 Reset Mesh + Cache</button>
+            <div class="step-label" style="margin-left: 20px;">
+                <span class="step-pill">3</span> Bridge Uplink:
+            </div>
+            <button class="btn-primary" onclick="manualFlush()">📡 Bridge Upload to NPCI Core</button>
         </div>
     </div>
 
-    <div class="grid grid-2">
+    <!-- Main Grid: Canvas & Devices -->
+    <div class="grid grid-3">
+        <!-- Visual Canvas -->
         <div class="card">
-            <h2>📱 Mesh Devices</h2>
-            <div id="devices"></div>
+            <div class="card-header">
+                <div class="card-title">🌐 Live Mesh Topology & Signal Activity</div>
+                <span id="canvasStatus" style="font-size: 12px; color: var(--text-muted);">Mesh Idle</span>
+            </div>
+            <div class="canvas-container">
+                <div class="canvas-overlay-legend">
+                    <div class="legend-item"><div class="legend-dot" style="background: #38bdf8;"></div> Alice (Sender)</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #94a3b8;"></div> Relay Hops (Offline)</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #10b981;"></div> Bridge (4G)</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #fbbf24;"></div> NPCI Bank Gateway</div>
+                </div>
+                <canvas id="meshCanvas"></canvas>
+            </div>
         </div>
 
+        <!-- Devices List -->
         <div class="card">
-            <h2>🏦 Account Balances</h2>
+            <div class="card-header">
+                <div class="card-title">📱 Mesh Nodes</div>
+                <span id="cacheInfo" style="font-size: 11px; color: var(--text-muted);">Idempotency Cache: 0</span>
+            </div>
+            <div class="device-list" id="devices"></div>
+        </div>
+
+        <!-- Account Balances -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">🏦 Bank Accounts</div>
+            </div>
             <table id="accounts-table">
                 <thead><tr><th>VPA</th><th>Holder</th><th>Balance</th></tr></thead>
                 <tbody></tbody>
             </table>
-            <p class="small" id="cacheInfo"></p>
         </div>
     </div>
 
-    <div class="card" style="margin-top: 16px">
-        <h2>📜 Transaction Ledger</h2>
-        <table id="tx-table">
-            <thead><tr>
-                <th>ID</th><th>From</th><th>To</th><th>Amount</th>
-                <th>Status</th><th>Bridge</th><th>Hops</th><th>Settled</th>
-            </tr></thead>
-            <tbody></tbody>
-        </table>
+    <!-- Ledger & Activity Log -->
+    <div class="grid grid-2" style="margin-top: 16px;">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">📜 NPCI Settlement Ledger</div>
+                <span style="font-size: 11px; color: var(--text-muted);">Atomic Compare-and-Set</span>
+            </div>
+            <div style="max-height: 200px; overflow-y: auto;">
+                <table id="tx-table">
+                    <thead><tr>
+                        <th>Tx ID</th><th>From</th><th>To</th><th>Amount</th><th>Status</th><th>Bridge</th><th>Hops</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">🪵 Real-Time Cryptographic & Ingestion Log</div>
+            </div>
+            <div id="log"></div>
+        </div>
     </div>
 
-    <div class="card" style="margin-top: 16px">
-        <h2>🪵 Activity Log</h2>
-        <div id="log"></div>
-    </div>
+    <footer>
+        UPI Offline Mesh Simulator • Zero Internet P2P Relay • End-to-End Hybrid Cryptography
+    </footer>
 </div>
 
 <script>
+// --- State & Canvas Setup ---
+let devicesState = [];
+let animPackets = []; // { fromX, fromY, toX, toY, progress, color, id }
+let pulseWaves = []; // { x, y, radius, maxRadius, color, alpha }
+let flashNode = null; // { name, color, expires }
+
+const canvas = document.getElementById('meshCanvas');
+const ctx = canvas.getContext('2d');
+
+// Node layout positions
+const nodeLayout = {
+    'phone-alice':     { x: 0.16, y: 0.60, name: 'Alice (Sender)', icon: '📱', desc: 'Basement 📵' },
+    'phone-stranger1': { x: 0.35, y: 0.32, name: 'Stranger 1',    icon: '📱', desc: 'Metro Relay 📵' },
+    'phone-stranger2': { x: 0.35, y: 0.80, name: 'Stranger 2',    icon: '📱', desc: 'Metro Relay 📵' },
+    'phone-stranger3': { x: 0.58, y: 0.52, name: 'Stranger 3',    icon: '📱', desc: 'Escalator 📵' },
+    'phone-bridge':    { x: 0.78, y: 0.35, name: 'Bridge Node',   icon: '📡', desc: 'Surface 🌐 4G' },
+    'npci-gateway':    { x: 0.88, y: 0.78, name: 'NPCI Core',     icon: '🏦', desc: 'Bank Switch ☁️' }
+};
+
+// Mesh connectivity edges
+const meshLinks = [
+    ['phone-alice', 'phone-stranger1'],
+    ['phone-alice', 'phone-stranger2'],
+    ['phone-stranger1', 'phone-stranger3'],
+    ['phone-stranger2', 'phone-stranger3'],
+    ['phone-stranger1', 'phone-bridge'],
+    ['phone-stranger3', 'phone-bridge']
+];
+
+function resizeCanvas() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function getCanvasPos(nodeKey) {
+    const layout = nodeLayout[nodeKey];
+    if (!layout) return { x: 0, y: 0 };
+    return {
+        x: layout.x * canvas.width,
+        y: layout.y * canvas.height
+    };
+}
+
+// Log utility
 function log(msg) {
     const el = document.getElementById('log');
-    el.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg + '\n' + el.textContent;
+    const time = new Date().toLocaleTimeString();
+    el.textContent = `[${time}] ${msg}\n` + el.textContent;
 }
 
+// Banner utility
+function setStoryBanner(stepTag, text) {
+    const banner = document.getElementById('storyBanner');
+    banner.style.display = 'block';
+    document.getElementById('storyStepTag').textContent = stepTag;
+    document.getElementById('storyText').innerHTML = text;
+}
+
+// Sound effects (gentle Web Audio beeps)
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playBeep(freq = 600, duration = 0.08, type = 'sine') {
+    try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    } catch (e) {}
+}
+
+// --- Animation Loop ---
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 1. Draw Mesh Edges
+    meshLinks.forEach(([fromId, toId]) => {
+        const p1 = getCanvasPos(fromId);
+        const p2 = getCanvasPos(toId);
+
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.strokeStyle = 'rgba(51, 65, 85, 0.45)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    });
+
+    // 2. Draw Cellular Uplink Beam from Bridge -> Gateway if bridge is active
+    const bridgePos = getCanvasPos('phone-bridge');
+    const npciPos = getCanvasPos('npci-gateway');
+    ctx.beginPath();
+    ctx.moveTo(bridgePos.x, bridgePos.y);
+    ctx.lineTo(npciPos.x, npciPos.y);
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 6]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 3. Draw Pulse Waves
+    for (let i = pulseWaves.length - 1; i >= 0; i--) {
+        const pw = pulseWaves[i];
+        pw.radius += 1.5;
+        pw.alpha -= 0.02;
+        if (pw.alpha <= 0 || pw.radius >= pw.maxRadius) {
+            pulseWaves.splice(i, 1);
+            continue;
+        }
+        ctx.beginPath();
+        ctx.arc(pw.x, pw.y, pw.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = pw.color.replace('ALPHA', pw.alpha.toFixed(2));
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    // 4. Draw Traveling Animated Packets
+    for (let i = animPackets.length - 1; i >= 0; i--) {
+        const ap = animPackets[i];
+        ap.progress += 0.035;
+        if (ap.progress >= 1) {
+            pulseWaves.push({
+                x: ap.toX, y: ap.toY, radius: 10, maxRadius: 36,
+                color: 'rgba(56, 189, 248, ALPHA)', alpha: 0.8
+            });
+            animPackets.splice(i, 1);
+            continue;
+        }
+        const curX = ap.fromX + (ap.toX - ap.fromX) * ap.progress;
+        const curY = ap.fromY + (ap.toY - ap.fromY) * ap.progress;
+
+        // Glowing packet orb
+        ctx.beginPath();
+        ctx.arc(curX, curY, 6, 0, Math.PI * 2);
+        ctx.fillStyle = ap.color || '#38bdf8';
+        ctx.shadowColor = ap.color || '#38bdf8';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    // 5. Draw Nodes
+    Object.keys(nodeLayout).forEach(key => {
+        const pos = getCanvasPos(key);
+        const devInfo = devicesState.find(d => d.deviceId === key);
+        const isOnline = devInfo ? devInfo.hasInternet : (key === 'npci-gateway');
+        const packetCount = devInfo ? devInfo.packetCount : 0;
+
+        let nodeColor = '#64748b'; // default grey
+        let glowColor = 'transparent';
+
+        if (key === 'phone-alice') {
+            nodeColor = '#38bdf8';
+            glowColor = 'rgba(56, 189, 248, 0.4)';
+        } else if (key === 'npci-gateway') {
+            nodeColor = '#f59e0b';
+            glowColor = 'rgba(245, 158, 11, 0.4)';
+        } else if (isOnline) {
+            nodeColor = '#10b981';
+            glowColor = 'rgba(16, 185, 129, 0.5)';
+        } else if (packetCount > 0) {
+            nodeColor = '#818cf8';
+            glowColor = 'rgba(129, 140, 248, 0.4)';
+        }
+
+        // Flash aura if active
+        if (flashNode && flashNode.name === key && Date.now() < flashNode.expires) {
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 32, 0, Math.PI * 2);
+            ctx.fillStyle = flashNode.color;
+            ctx.fill();
+        }
+
+        // Outer glow circle
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 22, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = nodeColor;
+        ctx.lineWidth = (packetCount > 0 || isOnline) ? 3 : 1.5;
+        if (glowColor !== 'transparent') {
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = 12;
+        }
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Node Label
+        ctx.font = '16px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(nodeLayout[key].icon, pos.x, pos.y);
+
+        ctx.font = 'bold 11px -apple-system, sans-serif';
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText(nodeLayout[key].name, pos.x, pos.y + 34);
+
+        // Sub description / packets held
+        ctx.font = '10px -apple-system, sans-serif';
+        if (key === 'npci-gateway') {
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillText('Central Clearing', pos.x, pos.y + 47);
+        } else if (packetCount > 0) {
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillText(`Holding: ${packetCount} pkt`, pos.x, pos.y + 47);
+        } else {
+            ctx.fillStyle = '#64748b';
+            ctx.fillText(isOnline ? '🌐 4G Online' : '📵 Zero Signal', pos.x, pos.y + 47);
+        }
+    });
+
+    requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+// Trigger visual packet animation between two nodes
+function emitVisualPacket(fromId, toId, color = '#38bdf8') {
+    const p1 = getCanvasPos(fromId);
+    const p2 = getCanvasPos(toId);
+    animPackets.push({
+        fromX: p1.x, fromY: p1.y,
+        toX: p2.x, toY: p2.y,
+        progress: 0,
+        color: color
+    });
+}
+
+// --- Refresh State ---
 async function refresh() {
-    // Mesh state
-    const m = await fetch('/api/mesh/state').then(r => r.json());
-    const devicesDiv = document.getElementById('devices');
-    devicesDiv.innerHTML = m.devices.map(d => `
-        <div class="device ${d.hasInternet ? 'bridge' : 'offline'}">
-            <strong>${d.deviceId}</strong>
-            <span class="badge ${d.hasInternet ? 'badge-online' : 'badge-offline'}">
-                ${d.hasInternet ? '🌐 4G' : '🚫 OFFLINE'}
-            </span>
-            <span class="small">holding ${d.packetCount} packet(s)</span>
-            <div>${d.packetIds.map(id => `<span class="packet-id">${id}</span>`).join('')}</div>
-        </div>
-    `).join('');
-    document.getElementById('cacheInfo').textContent =
-        `Idempotency cache size: ${m.idempotencyCacheSize}`;
+    try {
+        const m = await fetch('/api/mesh/state').then(r => r.json());
+        devicesState = m.devices;
 
-    // Accounts
-    const accs = await fetch('/api/accounts').then(r => r.json());
-    document.querySelector('#accounts-table tbody').innerHTML = accs.map(a => `
-        <tr><td>${a.vpa}</td><td>${a.holderName}</td>
-            <td class="balance">₹${parseFloat(a.balance).toFixed(2)}</td></tr>
-    `).join('');
+        // Render device cards
+        const devicesDiv = document.getElementById('devices');
+        devicesDiv.innerHTML = m.devices.map(d => {
+            const isBridge = d.hasInternet;
+            return `
+                <div class="device-item ${isBridge ? 'online' : ''} ${d.packetCount > 0 ? 'holding' : ''}">
+                    <div class="device-info-col">
+                        <div class="device-title">
+                            <span>${d.deviceId === 'phone-alice' ? '📱 Alice' : (d.deviceId === 'phone-bridge' ? '📡 Bridge Node' : '📱 ' + d.deviceId)}</span>
+                            <span class="status-pill ${isBridge ? 'online' : 'offline'}">
+                                ${isBridge ? '🌐 4G ONLINE' : '📵 OFFLINE'}
+                            </span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted);">
+                            Packets: ${d.packetCount}
+                            ${d.packetIds.map(id => `<span class="packet-badge">${id}</span>`).join('')}
+                        </div>
+                    </div>
+                    <button class="btn-toggle-net" onclick="toggleInternet('${d.deviceId}')">
+                        ${isBridge ? 'Disable 4G' : 'Enable 4G'}
+                    </button>
+                </div>
+            `;
+        }).join('');
 
-    // Transactions
-    const txs = await fetch('/api/transactions').then(r => r.json());
-    document.querySelector('#tx-table tbody').innerHTML = txs.map(t => `
-        <tr>
-            <td>${t.id}</td><td>${t.senderVpa}</td><td>${t.receiverVpa}</td>
-            <td class="balance">₹${parseFloat(t.amount).toFixed(2)}</td>
-            <td class="status-${t.status}">${t.status}</td>
-            <td>${t.bridgeNodeId}</td><td>${t.hopCount}</td>
-            <td class="small">${new Date(t.settledAt).toLocaleTimeString()}</td>
-        </tr>
-    `).join('');
+        document.getElementById('cacheInfo').textContent = `Idempotency Cache: ${m.idempotencyCacheSize} key(s)`;
+
+        // Accounts
+        const accs = await fetch('/api/accounts').then(r => r.json());
+        document.querySelector('#accounts-table tbody').innerHTML = accs.map(a => `
+            <tr>
+                <td><strong>${a.vpa}</strong></td>
+                <td style="color: var(--text-muted);">${a.holderName}</td>
+                <td class="amount-cell">₹${parseFloat(a.balance).toFixed(2)}</td>
+            </tr>
+        `).join('');
+
+        // Transactions
+        const txs = await fetch('/api/transactions').then(r => r.json());
+        document.querySelector('#tx-table tbody').innerHTML = txs.map(t => `
+            <tr>
+                <td style="font-family: monospace; font-size: 11px;">#${t.id}</td>
+                <td>${t.senderVpa}</td>
+                <td>${t.receiverVpa}</td>
+                <td class="amount-cell">₹${parseFloat(t.amount).toFixed(2)}</td>
+                <td><span class="status-badge status-${t.status}">${t.status}</span></td>
+                <td style="font-size: 11px; color: var(--text-muted);">${t.bridgeNodeId || '—'}</td>
+                <td style="font-size: 11px;">${t.hopCount}</td>
+            </tr>
+        `).join('');
+
+    } catch (e) {
+        console.error('Error refreshing state:', e);
+    }
 }
 
-async function sendPacket() {
+// --- Action Handlers ---
+
+async function toggleInternet(deviceId) {
+    const res = await fetch(`/api/mesh/toggle-internet/${deviceId}`, { method: 'POST' }).then(r => r.json());
+    log(`📶 Network toggled for ${deviceId}: ${res.hasInternet ? '4G Connected' : 'Offline'}`);
+    refresh();
+}
+
+async function manualInject() {
     const body = {
         senderVpa: document.getElementById('senderVpa').value,
         receiverVpa: document.getElementById('receiverVpa').value,
@@ -205,39 +941,151 @@ async function sendPacket() {
         ttl: 5,
         startDevice: 'phone-alice'
     };
+
     const r = await fetch('/api/demo/send', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(body)
     }).then(r => r.json());
-    log(`📤 Packet ${r.packetId.substring(0,8)} encrypted & injected at ${r.injectedAt} (TTL ${r.ttl})`);
-    log(`   ciphertext (truncated): ${r.ciphertextPreview}`);
+
+    playBeep(880, 0.12);
+    flashNode = { name: 'phone-alice', color: 'rgba(56, 189, 248, 0.3)', expires: Date.now() + 800 };
+    pulseWaves.push({ ...getCanvasPos('phone-alice'), radius: 10, maxRadius: 50, color: 'rgba(56, 189, 248, ALPHA)', alpha: 1 });
+
+    log(`📤 [STEP 1] Encrypted packet generated on Alice's device:`);
+    log(`   ID: ${r.packetId.substring(0,8)}... | Ciphertext: ${r.ciphertextPreview} (TTL: ${r.ttl})`);
     refresh();
 }
 
-async function gossip() {
-    const r = await fetch('/api/mesh/gossip', {method: 'POST'}).then(r => r.json());
-    log(`🔄 Gossip: ${r.transfers} transfer(s) — ${JSON.stringify(r.deviceCounts)}`);
-    refresh();
-}
+async function manualGossip() {
+    const r = await fetch('/api/mesh/gossip', { method: 'POST' }).then(r => r.json());
 
-async function flushBridges() {
-    const r = await fetch('/api/mesh/flush', {method: 'POST'}).then(r => r.json());
-    log(`📡 ${r.uploadsAttempted} bridge upload(s):`);
-    r.results.forEach(res => {
-        log(`   ${res.bridgeNode} packet ${res.packetId} → ${res.outcome}` +
-            (res.reason ? ` (${res.reason})` : ''));
+    meshLinks.forEach(([src, dst]) => {
+        emitVisualPacket(src, dst, '#818cf8');
     });
+
+    playBeep(520, 0.1, 'triangle');
+    log(`🔄 [STEP 2] Gossip Round completed: ${r.transfers} packet transfer(s) across mesh peers.`);
     refresh();
 }
 
-async function resetMesh() {
-    await fetch('/api/mesh/reset', {method: 'POST'});
-    log('🗑 mesh + idempotency cache cleared');
+async function manualFlush() {
+    const r = await fetch('/api/mesh/flush', { method: 'POST' }).then(r => r.json());
+
+    // Animate beam from bridge to gateway
+    emitVisualPacket('phone-bridge', 'npci-gateway', '#10b981');
+    playBeep(1046, 0.18);
+
+    flashNode = { name: 'npci-gateway', color: 'rgba(16, 185, 129, 0.4)', expires: Date.now() + 1000 };
+    pulseWaves.push({ ...getCanvasPos('npci-gateway'), radius: 12, maxRadius: 60, color: 'rgba(16, 185, 129, ALPHA)', alpha: 1 });
+
+    log(`📡 [STEP 3] Bridge upload: ${r.uploadsAttempted} packet(s) submitted to /api/bridge/ingest`);
+    r.results.forEach(res => {
+        log(`   ➔ ${res.bridgeNode}: ${res.outcome} ${res.reason ? '(' + res.reason + ')' : ''}`);
+    });
+
     refresh();
 }
 
+async function resetAll() {
+    await fetch('/api/mesh/reset', { method: 'POST' });
+    animPackets = [];
+    pulseWaves = [];
+    flashNode = null;
+    document.getElementById('storyBanner').style.display = 'none';
+    log('🗑 System reset: Mesh queues, ledger, account balances, and idempotency cache cleared.');
+    refresh();
+}
+
+// --- Automated Guided Story Walkthrough ---
+let isDemoRunning = false;
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function runAutomatedStory() {
+    if (isDemoRunning) return;
+    isDemoRunning = true;
+    const btn = document.getElementById('btnAutoDemo');
+    btn.disabled = true;
+    btn.textContent = '⏳ Running Demo Story...';
+
+    try {
+        // Reset state first
+        await resetAll();
+        await delay(1200);
+
+        // Phase 1: Context & Payment Injection
+        setStoryBanner('SCENARIO 1/5 • OFFLINE INTENT CREATION',
+            '📍 <strong>Underground Metro Basement (Zero Cellular Signal)</strong><br>' +
+            'Alice wants to pay <strong>Bob ₹500.00</strong>. Her phone uses hybrid encryption (RSA-2048 OAEP + AES-256-GCM) ' +
+            'to wrap the payment instruction with a cryptographic nonce. Intermediary nodes cannot inspect or alter it.'
+        );
+        manualInject();
+        await delay(3200);
+
+        // Phase 2: First Gossip Hop
+        setStoryBanner('SCENARIO 2/5 • STORE & FORWARD GOSSIP',
+            '🔄 <strong>Peer-to-Peer Bluetooth Hop 1</strong><br>' +
+            'Alice\'s phone broadcasts the encrypted payload to nearby commuter phones (Stranger 1 & Stranger 2). ' +
+            'Packets are stored in local buffers without decryption. TTL decrements from 5 to 4.'
+        );
+        manualGossip();
+        await delay(3200);
+
+        // Phase 3: Second Gossip Hop reaching Bridge
+        setStoryBanner('SCENARIO 3/5 • ESCALATION TOWARDS SURFACE',
+            '🔄 <strong>Gossip Hop 2 (Reaching Station Exit)</strong><br>' +
+            'As passengers move toward the escalators, the packet hops to Stranger 3 and the <strong>Bridge Node</strong>. ' +
+            'The entire local peer network now acts as an ad-hoc relay.'
+        );
+        manualGossip();
+        await delay(3200);
+
+        // Phase 4: Bridge node reaches 4G and submits to Gateway
+        setStoryBanner('SCENARIO 4/5 • OPPORTUNISTIC 4G UPLINK & SETTLEMENT',
+            '📡 <strong>Bridge Node steps outside and acquires 4G LTE</strong><br>' +
+            'The bridge phone automatically uploads the held packet to the NPCI Core Gateway. ' +
+            'The core server checks the SHA-256 hash in its idempotency cache, decrypts with RSA private key, ' +
+            'verifies freshness, and executes an atomic ledger settlement!'
+        );
+        manualFlush();
+        await delay(3500);
+
+        // Phase 5: Demonstrate Duplicate Suppression (Idempotency)
+        setStoryBanner('SCENARIO 5/5 • CONCURRENT DUPLICATE SUPPRESSION (IDEMPOTENCY)',
+            '🛡️ <strong>Simulating Multi-Bridge Duplicate Storm</strong><br>' +
+            'What happens if Stranger 3 also steps outside with 4G and uploads the exact same packet? ' +
+            'Let\'s connect Stranger 3 to 4G and trigger upload again. Watch the idempotency cache intercept and drop it!'
+        );
+        // Connect stranger3 to 4G
+        await fetch('/api/mesh/toggle-internet/phone-stranger3', { method: 'POST' });
+        refresh();
+        await delay(1800);
+
+        // Flush again -> Multi-bridge upload -> Idempotency drop!
+        manualFlush();
+        await delay(2500);
+
+        setStoryBanner('🎉 DEMO COMPLETE • TRANSACTION FULLY SETTLED & PROTECTED',
+            '✅ <strong>Payment Successful & Idempotency Verified</strong><br>' +
+            'Alice debited ₹500, Bob credited ₹500. Intermediaries remained zero-knowledge. ' +
+            'Duplicate packets cleanly dropped with zero double-spend risk!'
+        );
+
+    } catch (e) {
+        console.error('Demo error:', e);
+    } finally {
+        isDemoRunning = false;
+        btn.disabled = false;
+        btn.innerHTML = '🎬 Run Automated Story Walkthrough';
+    }
+}
+
+// Initial load
 refresh();
-setInterval(refresh, 3000);
+setInterval(refresh, 2500);
 </script>
 </body>
 </html>
