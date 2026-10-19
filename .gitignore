@@ -7,7 +7,7 @@ target/
 .vscode/
 .DS_Store
 
-# Demo helper tools and recordings
+
 DEMO_GUIDE.md
 record_upi_demo.sh
 *.mp4
